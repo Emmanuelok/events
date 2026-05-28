@@ -38,17 +38,21 @@ export async function getCurrentUser() {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (token) {
-    const session = await db.session.findUnique({
-      where: { token },
-      include: { user: true },
-    });
-    if (session && session.expiresAt >= new Date()) return session.user;
-    if (session) {
-      await db.session.delete({ where: { id: session.id } }).catch(() => {});
+    try {
+      const session = await db.session.findUnique({
+        where: { token },
+        include: { user: true },
+      });
+      if (session && session.expiresAt >= new Date()) return session.user;
+      if (session) {
+        await db.session.delete({ where: { id: session.id } }).catch(() => {});
+      }
+    } catch {
+      // DB unreachable or schema missing — fall through. The demo-mode branch
+      // below will return null too, which the landing page can render around.
     }
   }
 
-  // Demo mode: auto-sign-in as a fixed user so reviewers can browse without OTP.
   if (env().DEMO_MODE) {
     return getOrCreateDemoUser();
   }
@@ -56,19 +60,35 @@ export async function getCurrentUser() {
 }
 
 async function getOrCreateDemoUser() {
-  const existing = await db.user.findUnique({ where: { phone: DEMO_PHONE } });
-  if (existing) return existing;
-  return db.user.create({
-    data: {
-      phone: DEMO_PHONE,
-      displayName: DEMO_NAME,
-      verifiedAt: new Date(),
-    },
-  });
+  try {
+    const existing = await db.user.findUnique({ where: { phone: DEMO_PHONE } });
+    if (existing) return existing;
+    return await db.user.create({
+      data: {
+        phone: DEMO_PHONE,
+        displayName: DEMO_NAME,
+        verifiedAt: new Date(),
+      },
+    });
+  } catch {
+    // DB unreachable. Return null so callers (landing page, dashboard) can
+    // render a friendly setup-required message instead of a crash page.
+    return null;
+  }
 }
 
 export async function requireUser() {
   const user = await getCurrentUser();
   if (!user) throw new Error("UNAUTHENTICATED");
   return user;
+}
+
+// Quick health probe used by /api/health and the setup banner.
+export async function probeDb(): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await db.$queryRaw`SELECT 1`;
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }

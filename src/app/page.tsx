@@ -7,15 +7,27 @@ export default async function LandingPage() {
   const user = await getCurrentUser();
 
   // In demo mode, make sure the example event exists so the "See example" link works.
+  // Best-effort: if the DB is unreachable or unseeded, the landing page still renders.
   if (env().DEMO_MODE && user) {
-    await ensureDemoEvent(user.id).catch(() => {
-      // best-effort; landing should still render
-    });
+    await ensureDemoEvent(user.id).catch(() => {});
   }
   const demoMode = env().DEMO_MODE;
+  const dbHealthy = !!user || !demoMode; // in demo mode, user==null means DB is broken
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-kente-50 to-white">
+      {!dbHealthy && (
+        <div className="bg-red-600 text-white">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-5 py-3 text-sm">
+            <span>🛠️</span>
+            <p>
+              <strong>Database not reachable.</strong> Set{" "}
+              <code className="rounded bg-red-800 px-1">DATABASE_URL</code> on your hosting env
+              (free Postgres at <a className="underline" href="https://neon.tech" target="_blank" rel="noreferrer">neon.tech</a>) and redeploy. The build automatically applies the schema.
+            </p>
+          </div>
+        </div>
+      )}
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
         <Link href="/" className="flex items-center gap-2">
           <span className="inline-block h-8 w-8 rounded-lg bg-gradient-to-br from-kente-500 to-kente-700" />

@@ -12,12 +12,23 @@ function formatDate(d: Date) {
 
 export default async function DashboardIndex() {
   const user = await getCurrentUser();
+
+  // Demo mode + null user = DB unreachable (getCurrentUser returns null on
+  // DB failure now). Show a friendly setup page instead of crashing.
+  if (env().DEMO_MODE && !user) {
+    return <SetupRequired />;
+  }
   if (!user) redirect("/login");
 
   // Demo mode: auto-seed a rich example event so reviewers see everything
   // working immediately. Idempotent — re-running returns the same event.
   if (env().DEMO_MODE) {
-    const demoEventId = await ensureDemoEvent(user.id);
+    let demoEventId: string;
+    try {
+      demoEventId = await ensureDemoEvent(user.id);
+    } catch (err) {
+      return <SetupRequired error={err instanceof Error ? err.message : String(err)} />;
+    }
     redirect(`/dashboard/${demoEventId}`);
   }
 
@@ -74,6 +85,53 @@ export default async function DashboardIndex() {
             </li>
           ))}
         </ul>
+      </main>
+    </div>
+  );
+}
+
+function SetupRequired({ error }: { error?: string } = {}) {
+  return (
+    <div className="min-h-screen bg-ink-50">
+      <main className="mx-auto max-w-2xl px-5 py-16">
+        <div className="card">
+          <p className="text-3xl">🛠️</p>
+          <h1 className="mt-2 font-display text-2xl font-semibold text-ink-900">
+            One step to go: connect a database
+          </h1>
+          <p className="mt-3 text-ink-700">
+            Celebrate is deployed, but your hosting environment doesn&apos;t have a working
+            Postgres connection yet. Once you set <code className="rounded bg-ink-100 px-1">DATABASE_URL</code>,
+            the build will automatically apply the schema and the demo event will appear here.
+          </p>
+          <ol className="mt-4 space-y-2 text-sm text-ink-800">
+            <li>
+              <strong>1.</strong> Create a free Postgres at{" "}
+              <a className="text-kente-700 underline" href="https://neon.tech" target="_blank" rel="noreferrer">
+                neon.tech
+              </a>{" "}
+              — takes about 2 minutes.
+            </li>
+            <li>
+              <strong>2.</strong> Copy the <em>pooled</em> connection string.
+            </li>
+            <li>
+              <strong>3.</strong> In Vercel → Project Settings → Environment Variables, add{" "}
+              <code className="rounded bg-ink-100 px-1">DATABASE_URL</code> = (the connection string).
+              While you&apos;re there, also set{" "}
+              <code className="rounded bg-ink-100 px-1">SESSION_SECRET</code> to any 32+ char random string.
+            </li>
+            <li>
+              <strong>4.</strong> Redeploy. The build will apply the schema automatically.
+            </li>
+          </ol>
+          {error && (
+            <div className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-red-200">
+              <p className="font-medium">Server reported:</p>
+              <code className="break-all text-xs">{error}</code>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
