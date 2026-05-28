@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { env } from "@/lib/env";
+import { env, assertRuntimeReady } from "@/lib/env";
 import { generateOtp, hashOtp, sha256 } from "@/lib/crypto";
 import { getOtpProvider } from "@/lib/providers/otp";
 
@@ -24,6 +24,7 @@ export async function sendOtp(input: SendOtpInput): Promise<
   | { ok: true; requestId: string; devCode?: string }
   | { ok: false; error: "rate_limited" | "send_failed" }
 > {
+  assertRuntimeReady();
   // Rate limit: max N requests per phone per window.
   const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MIN * 60 * 1000);
   const recent = await db.otpRequest.count({
@@ -62,6 +63,7 @@ export async function sendOtp(input: SendOtpInput): Promise<
 export async function verifyOtp(input: VerifyOtpInput): Promise<
   { ok: true } | { ok: false; error: "expired" | "invalid" | "exhausted" | "not_found" }
 > {
+  assertRuntimeReady();
   const request = await db.otpRequest.findFirst({
     where: {
       phone: input.phone,

@@ -1,8 +1,12 @@
 import { z } from "zod";
 
+// IMPORTANT: keep every field optional with a default so module evaluation
+// during `next build` (static prerender of layout / 404 / not-found) does NOT
+// throw. Fail-loud guards live next to the code that actually needs each var
+// (see assertRuntimeReady below).
 const schema = z.object({
-  DATABASE_URL: z.string().url(),
-  SESSION_SECRET: z.string().min(32, "SESSION_SECRET must be at least 32 chars"),
+  DATABASE_URL: z.string().optional().default(""),
+  SESSION_SECRET: z.string().optional().default(""),
 
   OTP_PROVIDER: z.enum(["mock", "hubtel"]).default("mock"),
   WHATSAPP_PROVIDER: z.enum(["mock", "meta"]).default("mock"),
@@ -48,11 +52,28 @@ export function env(): Env {
   if (cached) return cached;
   const parsed = schema.safeParse(process.env);
   if (!parsed.success) {
-    const flat = parsed.error.flatten();
+    // Schema is permissive; this only happens for type-coercion failures.
     throw new Error(
-      `Invalid environment configuration:\n${JSON.stringify(flat.fieldErrors, null, 2)}`,
+      `Invalid environment configuration:\n${JSON.stringify(parsed.error.flatten().fieldErrors, null, 2)}`,
     );
   }
   cached = parsed.data;
   return cached;
+}
+
+/**
+ * Call this from code paths that ACTUALLY require a real DB / signing secret
+ * at runtime (e.g. before issuing an OTP, before opening a session). It throws
+ * a clear, single error so missing config doesn't silently produce bad HMACs.
+ */
+export function assertRuntimeReady(): void {
+  const e = env();
+  const missing: string[] = [];
+  if (!e.DATABASE_URL) missing.push("DATABASE_URL");
+  if (!e.SESSION_SECRET || e.SESSION_SECRET.length < 32) missing.push("SESSION_SECRET");
+  if (missing.length > 0) {
+    throw new Error(
+      `Celebrate is not configured for runtime: missing ${missing.join(", ")}. Set these in your hosting environment (e.g. Vercel project env vars).`,
+    );
+  }
 }
