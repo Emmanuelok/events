@@ -128,6 +128,8 @@ model Event {
   giftIntents   GiftIntent[]
   gifts         Gift[]
   payoutAccount EventPayoutAccount?
+  outboundMessages OutboundMessage[]
+  inboundMessages  InboundMessage[]
 
   @@index([ownerId])
   @@index([status, eventDate])
@@ -177,7 +179,9 @@ model Guest {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  rsvp Rsvp?
+  rsvp           Rsvp?
+  outboundMessages OutboundMessage[]
+  inboundMessages  InboundMessage[]
 
   @@unique([eventId, phone])
   @@index([eventId])
@@ -274,6 +278,101 @@ model AuditLog {
   createdAt   DateTime @default(now())
 
   @@index([eventId, createdAt])
+}
+
+// ─────────────────────── Messaging + AI inbox ──────────────────
+
+enum MessageChannel {
+  whatsapp
+  sms
+}
+
+enum MessageDirection {
+  outbound
+  inbound
+}
+
+enum MessageStatus {
+  queued
+  sent
+  delivered
+  read
+  failed
+}
+
+model OutboundMessage {
+  id              String           @id @default(cuid())
+  eventId         String
+  event           Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  guestId         String?
+  guest           Guest?           @relation(fields: [guestId], references: [id], onDelete: SetNull)
+  toPhone         String
+  channel         MessageChannel
+  templateKey     String           // e.g. 'save_the_date' | 'rsvp_reminder' | 'thank_you_followup'
+  body            String           @db.Text
+  status          MessageStatus    @default(queued)
+  provider        String           // 'mock' | 'meta' | 'hubtel'
+  providerMessageId String?
+  failureReason   String?
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  readAt          DateTime?
+  createdAt       DateTime         @default(now())
+
+  @@index([eventId, createdAt(sort: Desc)])
+  @@index([providerMessageId])
+}
+
+enum RsvpIntent {
+  rsvp_yes
+  rsvp_no
+  rsvp_maybe
+  dietary
+  plus_one
+  question
+  other
+}
+
+model InboundMessage {
+  id              String           @id @default(cuid())
+  eventId         String?
+  event           Event?           @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  guestId         String?
+  guest           Guest?           @relation(fields: [guestId], references: [id], onDelete: SetNull)
+  fromPhone       String
+  channel         MessageChannel
+  body            String           @db.Text
+  receivedAt      DateTime         @default(now())
+  providerMessageId String?        @unique
+  intent          RsvpIntent?
+  intentConfidence Float?
+  handledByUserId String?
+  handledAt       DateTime?
+
+  draft           AiDraft?
+
+  @@index([eventId, receivedAt(sort: Desc)])
+}
+
+enum DraftStatus {
+  pending
+  approved
+  edited_and_sent
+  rejected
+}
+
+model AiDraft {
+  id                String           @id @default(cuid())
+  inboundMessageId  String           @unique
+  inboundMessage    InboundMessage   @relation(fields: [inboundMessageId], references: [id], onDelete: Cascade)
+  draftBody         String           @db.Text
+  modelId           String
+  status            DraftStatus      @default(pending)
+  approverUserId    String?
+  approvedAt        DateTime?
+  sentOutboundMessageId String?
+  rejectedReason    String?
+  createdAt         DateTime         @default(now())
 }
 
 // ─────────────────────── Money — gifts ─────────────────────────

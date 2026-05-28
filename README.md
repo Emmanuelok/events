@@ -68,7 +68,10 @@ Phase 0 + Phase 1 + the **AI Design Studio (Phase 3)** from `SPEC.md`:
 - ✅ Provider interfaces for WhatsApp, Payments, AI, Image, Video
 - ✅ **MoMo cash gifts** end-to-end (B6): public gift flow with amount/channel/MoMo number, Paystack adapter with HMAC-SHA512 webhook verification + transaction verify, idempotent intents (replay-safe), audit log per transition, organizer gifts dashboard with totals and per-gift thank-you queue
 - ✅ **AI thank-you composer** — Claude Sonnet 4.6 drafts a warm Ghanaian-English thank-you per gift; one click opens WhatsApp pre-filled with the message
-- ✅ Strict TypeScript, ESLint, Vitest (50 tests passing including 19 for the money path)
+- ✅ **WhatsApp + SMS invitations** (B5) — pre-baked templates (save_the_date, rsvp_reminder, thank_you_followup) sent via Meta Cloud API → Hubtel SMS fallback. 24h cooldown per template prevents duplicate spam. Bulk-send from Guests page.
+- ✅ **AI RSVP Inbox** — inbound WhatsApp / SMS messages are classified by Claude into intent (rsvp_yes/no/maybe, dietary, plus_one, question, other); structured updates auto-extracted; warm reply drafted; couple approves with one tap, RSVP state updates automatically. Local simulate endpoint demos the flow without Meta wiring.
+- ✅ **Demo mode** — `DEMO_MODE=1` env flag bypasses phone OTP and signs every visitor in as a single demo user, with a visible amber banner. Money-handling paths remain signature-verified.
+- ✅ Strict TypeScript, ESLint, Vitest (61 tests passing)
 - ✅ Audit log + AI invocation log tables; per-event design history
 
 What's intentionally **not** in this slice (see SPEC.md §11 for the phased plan):

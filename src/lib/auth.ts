@@ -1,9 +1,12 @@
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { randomToken } from "@/lib/crypto";
+import { env } from "@/lib/env";
 
 const SESSION_COOKIE = "celebrate_session";
 const SESSION_DAYS = 30;
+const DEMO_PHONE = "+233000000000";
+const DEMO_NAME = "Demo Organizer";
 
 export async function createSession(userId: string): Promise<string> {
   const token = randomToken(32);
@@ -34,17 +37,34 @@ export async function destroySession(): Promise<void> {
 export async function getCurrentUser() {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  const session = await db.session.findUnique({
-    where: { token },
-    include: { user: true },
-  });
-  if (!session) return null;
-  if (session.expiresAt < new Date()) {
-    await db.session.delete({ where: { id: session.id } }).catch(() => {});
-    return null;
+  if (token) {
+    const session = await db.session.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+    if (session && session.expiresAt >= new Date()) return session.user;
+    if (session) {
+      await db.session.delete({ where: { id: session.id } }).catch(() => {});
+    }
   }
-  return session.user;
+
+  // Demo mode: auto-sign-in as a fixed user so reviewers can browse without OTP.
+  if (env().DEMO_MODE) {
+    return getOrCreateDemoUser();
+  }
+  return null;
+}
+
+async function getOrCreateDemoUser() {
+  const existing = await db.user.findUnique({ where: { phone: DEMO_PHONE } });
+  if (existing) return existing;
+  return db.user.create({
+    data: {
+      phone: DEMO_PHONE,
+      displayName: DEMO_NAME,
+      verifiedAt: new Date(),
+    },
+  });
 }
 
 export async function requireUser() {

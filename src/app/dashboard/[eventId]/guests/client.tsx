@@ -116,6 +116,29 @@ export default function GuestsClient({
     router.refresh();
   }
 
+  const [bulkBusy, setBulkBusy] = useState<null | "save_the_date" | "rsvp_reminder">(null);
+  const [sendResult, setSendResult] = useState<string | null>(null);
+  async function bulkSend(templateKey: "save_the_date" | "rsvp_reminder") {
+    setBulkBusy(templateKey);
+    setSendResult(null);
+    try {
+      const r = await fetch(`/api/events/${eventId}/messages/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateKey, channelPreference: "auto", all: true }),
+      });
+      const d = await r.json();
+      if (!r.ok) {
+        setSendResult(d.error ?? "Send failed");
+        return;
+      }
+      setSendResult(`Sent ${d.sent} · skipped ${d.skipped} · failed ${d.failed}`);
+      router.refresh();
+    } finally {
+      setBulkBusy(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
@@ -180,6 +203,32 @@ export default function GuestsClient({
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <div className="card flex flex-wrap items-center gap-3">
+        <div className="flex-1">
+          <h2 className="font-display text-lg font-semibold text-ink-900">
+            Send invitations & reminders
+          </h2>
+          <p className="text-sm text-ink-600">
+            WhatsApp first, SMS fallback. Same template won&apos;t resend within 24 hours.
+          </p>
+        </div>
+        <button
+          className="btn-primary text-sm"
+          onClick={() => bulkSend("save_the_date")}
+          disabled={bulkBusy !== null || guests.length === 0}
+        >
+          {bulkBusy === "save_the_date" ? "Sending…" : "Send save-the-date to all"}
+        </button>
+        <button
+          className="btn-secondary text-sm"
+          onClick={() => bulkSend("rsvp_reminder")}
+          disabled={bulkBusy !== null || guests.length === 0}
+        >
+          {bulkBusy === "rsvp_reminder" ? "Sending…" : "Send RSVP reminder"}
+        </button>
+      </div>
+      {sendResult && <p className="text-sm text-ink-700">{sendResult}</p>}
 
       <div className="card overflow-hidden p-0">
         <div className="flex items-center justify-between border-b border-ink-100 px-5 py-4">

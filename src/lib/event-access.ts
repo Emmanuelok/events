@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { env } from "@/lib/env";
 
 export type AccessRole = "owner" | "editor" | "viewer";
 
@@ -7,6 +8,12 @@ export async function canAccessEvent(
   eventId: string,
   required: AccessRole = "viewer",
 ): Promise<boolean> {
+  // Demo mode: anyone with a session can touch any event.
+  if (env().DEMO_MODE) {
+    const event = await db.event.findUnique({ where: { id: eventId }, select: { id: true } });
+    return !!event;
+  }
+
   const event = await db.event.findUnique({
     where: { id: eventId },
     select: { ownerId: true, members: { where: { userId }, select: { role: true } } },

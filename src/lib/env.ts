@@ -31,6 +31,13 @@ const schema = z.object({
   PAYSTACK_PUBLIC_KEY: z.string().optional(),
 
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+
+  // TEMPORARY: when set, bypasses phone-OTP auth and signs every visitor in as
+  // a single demo user. Used for stakeholder review; un-set in production.
+  DEMO_MODE: z
+    .string()
+    .optional()
+    .transform((v) => v === "1" || v === "true"),
 });
 
 export type Env = z.infer<typeof schema>;
