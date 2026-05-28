@@ -1,8 +1,18 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
+import { env } from "@/lib/env";
+import { ensureDemoEvent, DEMO_SLUG } from "@/lib/demo/seed";
 
 export default async function LandingPage() {
   const user = await getCurrentUser();
+
+  // In demo mode, make sure the example event exists so the "See example" link works.
+  if (env().DEMO_MODE && user) {
+    await ensureDemoEvent(user.id).catch(() => {
+      // best-effort; landing should still render
+    });
+  }
+  const demoMode = env().DEMO_MODE;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-kente-50 to-white">
@@ -12,6 +22,16 @@ export default async function LandingPage() {
           <span className="font-display text-xl font-semibold text-ink-900">Celebrate</span>
         </Link>
         <nav className="flex items-center gap-2">
+          {demoMode && (
+            <Link
+              href={`/e/${DEMO_SLUG}`}
+              className="btn-ghost text-sm"
+              target="_blank"
+              rel="noreferrer"
+            >
+              View example event ↗
+            </Link>
+          )}
           {user ? (
             <Link href="/dashboard" className="btn-primary">
               Open dashboard
@@ -42,11 +62,17 @@ export default async function LandingPage() {
               RSVP over WhatsApp, cash gifts via MoMo, and verified local vendors.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <Link href="/login" className="btn-primary text-base">
-                Start your event — it&apos;s free
+              <Link
+                href={demoMode ? "/dashboard" : "/login"}
+                className="btn-primary text-base"
+              >
+                {demoMode ? "Open the demo dashboard" : "Start your event — it's free"}
               </Link>
-              <Link href="#how" className="btn-secondary text-base">
-                See how it works
+              <Link
+                href={demoMode ? `/e/${DEMO_SLUG}` : "#how"}
+                className="btn-secondary text-base"
+              >
+                {demoMode ? "View example wedding page" : "See how it works"}
               </Link>
             </div>
             <div className="mt-6 flex items-center gap-4 text-sm text-ink-600">

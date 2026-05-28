@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import Topbar from "@/components/Topbar";
+import { env } from "@/lib/env";
+import { ensureDemoEvent } from "@/lib/demo/seed";
 
 function formatDate(d: Date) {
   return d.toLocaleDateString("en-GH", { year: "numeric", month: "long", day: "numeric" });
@@ -11,6 +13,13 @@ function formatDate(d: Date) {
 export default async function DashboardIndex() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+
+  // Demo mode: auto-seed a rich example event so reviewers see everything
+  // working immediately. Idempotent — re-running returns the same event.
+  if (env().DEMO_MODE) {
+    const demoEventId = await ensureDemoEvent(user.id);
+    redirect(`/dashboard/${demoEventId}`);
+  }
 
   const memberships = await db.eventMember.findMany({
     where: { userId: user.id },
