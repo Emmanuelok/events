@@ -36,12 +36,13 @@ const schema = z.object({
 
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
 
-  // TEMPORARY: when set, bypasses phone-OTP auth and signs every visitor in as
-  // a single demo user. Used for stakeholder review; un-set in production.
+  // TEMPORARY (stakeholder review phase): bypasses phone-OTP auth and signs
+  // every visitor in as a single demo user. Defaults to ON — explicitly set
+  // DEMO_MODE=0 or DEMO_MODE=false in your hosting env to restore real auth.
   DEMO_MODE: z
     .string()
     .optional()
-    .transform((v) => v === "1" || v === "true"),
+    .transform((v) => v !== "0" && v !== "false"),
 });
 
 export type Env = z.infer<typeof schema>;
