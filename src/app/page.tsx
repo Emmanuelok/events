@@ -34,12 +34,12 @@ export default async function LandingPage() {
           <div>
             <span className="chip bg-kente-100 text-kente-800">Built for Ghana 🇬🇭</span>
             <h1 className="mt-4 font-display text-4xl font-semibold leading-tight text-ink-900 sm:text-5xl md:text-6xl">
-              Plan your wedding the way <span className="text-kente-700">Ghana</span> actually celebrates.
+              An AI design studio for the way <span className="text-kente-700">Ghana</span> celebrates.
             </h1>
             <p className="mt-5 max-w-xl text-lg text-ink-700">
-              Beautiful event websites. RSVP over WhatsApp. Cash gifts via MoMo. Verified local
-              vendors. And an AI that knows the difference between a traditional engagement and a
-              white wedding.
+              Tell us one paragraph. We generate your whole wedding website — copy, schedule, FAQ,
+              gift page — tuned to a Ghanaian wedding, with imagery you can generate too. Plus
+              RSVP over WhatsApp, cash gifts via MoMo, and verified local vendors.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link href="/login" className="btn-primary text-base">
@@ -96,9 +96,19 @@ export default async function LandingPage() {
         <div className="mt-8 grid gap-5 md:grid-cols-3">
           {[
             {
-              title: "Your event website",
-              body: "A mobile-first page for your wedding — story, schedule, venue, RSVP, gifts — at celebrate.gh/your-name.",
-              icon: "🏛️",
+              title: "AI Design Studio",
+              body: "A paragraph in, a finished wedding website out. Claude writes your headline, story, schedule, FAQ and gift page — Ghanaian-correct, editable inline.",
+              icon: "✨",
+            },
+            {
+              title: "AI image & video (soon)",
+              body: "Generate hero imagery and save-the-date videos tuned to your couple shoot and wedding aesthetic. Imagen 4 / Veo 3 ready.",
+              icon: "🎨",
+            },
+            {
+              title: "Three signature templates",
+              body: "Adinkra (warm + cultural), Modern Romance (editorial elegance), Kente Bold (high-contrast magazine cover).",
+              icon: "🪡",
             },
             {
               title: "WhatsApp invitations",
@@ -107,23 +117,13 @@ export default async function LandingPage() {
             },
             {
               title: "MoMo cash gifts",
-              body: "Guests send cash from MTN, Telecel or AirtelTigo with one tap. You see who gave what, ready to thank.",
+              body: "Guests send from MTN, Telecel or AirtelTigo with one tap. You see who gave what, ready to thank.",
               icon: "💸",
-            },
-            {
-              title: "Verified local vendors",
-              body: "Caterers, decorators, photographers, MCs — hand-vetted by us, matched to your budget by AI.",
-              icon: "✅",
             },
             {
               title: "AI budget estimator",
               body: "Tell us your region and guest count, get a realistic GHS line-item budget tuned to Ghana's market.",
               icon: "🧮",
-            },
-            {
-              title: "One organizer dashboard",
-              body: "Guests, RSVPs, gifts, vendors and your checklist — together, on your phone, even on patchy data.",
-              icon: "📋",
             },
           ].map((f) => (
             <div key={f.title} className="card">

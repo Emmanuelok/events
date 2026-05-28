@@ -107,6 +107,22 @@ export default async function EventOverview({
         </div>
       </div>
 
+      <div className="rounded-2xl bg-gradient-to-br from-kente-500 via-kente-600 to-forest-700 p-6 text-white shadow-soft">
+        <p className="text-xs uppercase tracking-widest opacity-90">New</p>
+        <h2 className="mt-1 font-display text-2xl font-semibold">Design your site with AI</h2>
+        <p className="mt-1 max-w-xl opacity-95">
+          Tell Claude one paragraph about you and your wedding. It writes your hero, story,
+          schedule, FAQ, and gift section — tuned to a Ghanaian wedding. Edit anything inline,
+          regenerate sections, or swap the template in one click.
+        </p>
+        <Link
+          href={`/dashboard/${event.id}/design`}
+          className="btn-secondary mt-4 inline-flex bg-white text-ink-900 hover:bg-ink-50"
+        >
+          Open Design Studio →
+        </Link>
+      </div>
+
       <div className="card">
         <h2 className="font-display text-xl font-semibold text-ink-900">Share your event page</h2>
         <p className="mt-1 text-ink-700">

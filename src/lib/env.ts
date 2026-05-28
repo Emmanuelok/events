@@ -8,10 +8,16 @@ const schema = z.object({
   WHATSAPP_PROVIDER: z.enum(["mock", "meta"]).default("mock"),
   PAYMENT_PROVIDER: z.enum(["mock", "paystack"]).default("mock"),
   AI_PROVIDER: z.enum(["mock", "anthropic"]).default("mock"),
+  IMAGE_PROVIDER: z.enum(["mock", "gemini"]).default("mock"),
+  VIDEO_PROVIDER: z.enum(["mock", "gemini"]).default("mock"),
 
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL_BUDGET: z.string().default("claude-opus-4-7"),
   ANTHROPIC_MODEL_FAST: z.string().default("claude-sonnet-4-6"),
+
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_IMAGE_MODEL: z.string().default("imagen-4.0-generate-001"),
+  GEMINI_VIDEO_MODEL: z.string().default("veo-3.0-generate-001"),
 
   HUBTEL_CLIENT_ID: z.string().optional(),
   HUBTEL_CLIENT_SECRET: z.string().optional(),

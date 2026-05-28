@@ -25,6 +25,7 @@ export default async function EventLayout({
 
   const tabs = [
     { href: `/dashboard/${event.id}`, label: "Overview" },
+    { href: `/dashboard/${event.id}/design`, label: "Design Studio ✨" },
     { href: `/dashboard/${event.id}/guests`, label: "Guests" },
     { href: `/dashboard/${event.id}/budget`, label: "Budget" },
   ];

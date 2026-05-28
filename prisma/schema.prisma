@@ -111,6 +111,10 @@ model Event {
   groomName     String?
   guestCount    Int             @default(100)
   settings      Json            @default("{}")
+  templateId    String          @default("adinkra")
+  pageDesign    Json            @default("{}")
+  designVersion Int             @default(0)
+  publishedAt   DateTime?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
@@ -119,6 +123,8 @@ model Event {
   rsvps   Rsvp[]
   budget  Budget?
   aiInvocations AiInvocation[]
+  mediaAssets   MediaAsset[]
+  designBriefs  DesignBrief[]
 
   @@index([ownerId])
   @@index([status, eventDate])
@@ -262,6 +268,40 @@ model AuditLog {
   target      String?
   metadata    Json     @default("{}")
   ip          String?
+  createdAt   DateTime @default(now())
+
+  @@index([eventId, createdAt])
+}
+
+// ─────────────────────── Design studio ──────────────────────────
+
+model MediaAsset {
+  id          String   @id @default(cuid())
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  kind        String   // 'image' | 'video'
+  url         String   @db.Text // data URL or external URL
+  prompt      String?  @db.Text
+  provider    String   // 'mock' | 'gemini' | 'replicate' | 'upload'
+  modelId     String?
+  mimeType    String?
+  width       Int?
+  height      Int?
+  bytes       Int?
+  createdAt   DateTime @default(now())
+
+  @@index([eventId, createdAt])
+}
+
+model DesignBrief {
+  id          String   @id @default(cuid())
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  brief       String   @db.Text
+  vibe        String   // 'warm' | 'elegant' | 'bold' | 'minimal'
+  templateId  String
+  generated   Json     // the structured PageDesign produced by Claude
+  modelId     String
   createdAt   DateTime @default(now())
 
   @@index([eventId, createdAt])

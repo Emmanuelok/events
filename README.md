@@ -34,7 +34,8 @@ locally with no third-party keys. To enable a real provider:
 | Phone OTP | `OTP_PROVIDER=hubtel`, `HUBTEL_CLIENT_ID`, `HUBTEL_CLIENT_SECRET` | A Hubtel SMS account with a registered sender ID |
 | WhatsApp | `WHATSAPP_PROVIDER=meta`, `META_WHATSAPP_PHONE_NUMBER_ID`, `META_WHATSAPP_TOKEN`, `META_WHATSAPP_VERIFY_TOKEN` | A WhatsApp Business account with at least one approved template |
 | Payments | `PAYMENT_PROVIDER=paystack`, `PAYSTACK_SECRET_KEY`, `PAYSTACK_PUBLIC_KEY` | Paystack merchant account, Ghana MoMo enabled. **Use sandbox keys in dev.** |
-| AI (budget estimator) | `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` | An Anthropic API key. Without it, the budget estimator falls back to a built-in template. |
+| AI (text / design studio / budget) | `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` | Anthropic API key. Without it, all text AI falls back to deterministic templates. |
+| AI image generation (Imagen 4) | `IMAGE_PROVIDER=gemini`, `GEMINI_API_KEY` | Google AI Studio key with Imagen 4 access. Without it, image generation returns Picsum placeholders. |
 
 The mock OTP provider logs codes to the server console.
 
@@ -53,17 +54,20 @@ npm run db:migrate   # Create a versioned migration
 
 ## What's in this slice
 
-This is the **Phase 0 + Phase 1** vertical slice from `SPEC.md`:
+Phase 0 + Phase 1 + the **AI Design Studio (Phase 3)** from `SPEC.md`:
 
-- ✅ Auth: phone OTP (mock provider, Hubtel adapter included)
-- ✅ Create event flow + organizer dashboard
+- ✅ Auth: phone OTP (mock provider in dev, Hubtel adapter)
+- ✅ Create event flow + multi-event organizer dashboard
 - ✅ Guest list CRUD + bulk CSV paste
-- ✅ Public event page (one polished mobile-first template)
+- ✅ Public event page with **section-based rendering** across 3 templates (Adinkra / Modern Romance / Kente Bold)
 - ✅ Public RSVP flow with phone-OTP verification
-- ✅ AI Budget Estimator — Claude when key set, deterministic template otherwise
-- ✅ Provider interfaces for WhatsApp + Payments (mock impls; real adapters present but unwired in UI)
-- ✅ Strict TypeScript, ESLint, Vitest tests
-- ✅ Audit log + AI invocation log tables
+- ✅ AI Budget Estimator (Claude or template fallback)
+- ✅ **AI Design Studio**: Claude writes hero, story, schedule, details, FAQ, gifts and RSVP sections from a brief; per-section regenerate with custom prompt; live in-iframe preview
+- ✅ **AI image generation** via Gemini Imagen 4 (env-gated; mock = Picsum in dev)
+- ✅ Video provider interface scaffolded (Veo 3 wiring deferred to next slice)
+- ✅ Provider interfaces for WhatsApp, Payments, AI, Image, Video
+- ✅ Strict TypeScript, ESLint, Vitest (31 tests passing)
+- ✅ Audit log + AI invocation log tables; per-event design history
 
 What's intentionally **not** in this slice (see SPEC.md §11 for the phased plan):
 
