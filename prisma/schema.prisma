@@ -1,0 +1,268 @@
+// Celebrate — Prisma schema (Phase 0 + Phase 1 slice)
+// All money fields are integer minor units (GHS pesewas). Never floats.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── Identity ───────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  phone        String   @unique
+  email        String?  @unique
+  displayName  String?
+  locale       String   @default("en-GH")
+  verifiedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions     Session[]
+  ownedEvents  Event[]   @relation("EventOwner")
+  memberships  EventMember[]
+  aiInvocations AiInvocation[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model OtpRequest {
+  id          String   @id @default(cuid())
+  phone       String
+  codeHash    String
+  purpose     String   // 'login' | 'rsvp'
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  attempts    Int      @default(0)
+  ipHash      String?
+  createdAt   DateTime @default(now())
+
+  @@index([phone, createdAt])
+}
+
+// ─────────────────────────── Events ─────────────────────────────
+
+enum EventType {
+  wedding
+}
+
+enum EventVisibility {
+  public
+  unlisted
+  private
+}
+
+enum EventStatus {
+  draft
+  published
+  archived
+}
+
+enum Region {
+  greater_accra
+  ashanti
+  western
+  central
+  eastern
+  volta
+  northern
+  upper_east
+  upper_west
+  bono
+  bono_east
+  ahafo
+  oti
+  savannah
+  north_east
+  western_north
+}
+
+model Event {
+  id            String          @id @default(cuid())
+  slug          String          @unique
+  type          EventType       @default(wedding)
+  title         String
+  story         String?         @db.Text
+  ownerId       String
+  owner         User            @relation("EventOwner", fields: [ownerId], references: [id])
+  eventDate     DateTime
+  eventTime     String?         // "HH:mm" Africa/Accra
+  region        Region
+  city          String
+  venueName     String?
+  venueAddress  String?
+  coverImageUrl String?
+  visibility    EventVisibility @default(unlisted)
+  status        EventStatus     @default(draft)
+  brideName     String?
+  groomName     String?
+  guestCount    Int             @default(100)
+  settings      Json            @default("{}")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  members EventMember[]
+  guests  Guest[]
+  rsvps   Rsvp[]
+  budget  Budget?
+  aiInvocations AiInvocation[]
+
+  @@index([ownerId])
+  @@index([status, eventDate])
+}
+
+enum EventRole {
+  owner
+  editor
+  viewer
+}
+
+model EventMember {
+  id        String    @id @default(cuid())
+  eventId   String
+  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      EventRole
+  createdAt DateTime  @default(now())
+
+  @@unique([eventId, userId])
+  @@index([userId])
+}
+
+// ─────────────────────── Guests & RSVP ──────────────────────────
+
+enum InviteChannel {
+  whatsapp
+  sms
+  email
+  link
+}
+
+model Guest {
+  id              String        @id @default(cuid())
+  eventId         String
+  event           Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  phone           String
+  displayName     String
+  email           String?
+  groupTag        String?
+  tableNumber     Int?
+  plusOnesAllowed Int           @default(0)
+  invitedVia      InviteChannel @default(whatsapp)
+  notes           String?
+  shortCode       String        @unique // for /r/<shortCode>
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  rsvp Rsvp?
+
+  @@unique([eventId, phone])
+  @@index([eventId])
+}
+
+enum RsvpStatus {
+  pending
+  yes
+  no
+  maybe
+}
+
+model Rsvp {
+  id          String     @id @default(cuid())
+  guestId     String     @unique
+  guest       Guest      @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  eventId     String
+  event       Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  status      RsvpStatus @default(pending)
+  plusOnes    Int        @default(0)
+  dietary     String?
+  message     String?
+  channel     String?    // 'whatsapp' | 'sms' | 'web'
+  respondedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([eventId, status])
+}
+
+// ─────────────────────────── Budget ─────────────────────────────
+
+model Budget {
+  id            String   @id @default(cuid())
+  eventId       String   @unique
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  totalMinor    Int      @default(0)
+  generatedByAi Boolean  @default(false)
+  sourceInputs  Json     @default("{}")
+  assumptions   Json     @default("[]")
+  warnings      Json     @default("[]")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  items BudgetLineItem[]
+}
+
+model BudgetLineItem {
+  id            String  @id @default(cuid())
+  budgetId      String
+  budget        Budget  @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  category      String
+  label         String
+  plannedMinor  Int     @default(0)
+  actualMinor   Int     @default(0)
+  lowMinor      Int     @default(0)
+  highMinor     Int     @default(0)
+  notes         String?
+  orderIndex    Int     @default(0)
+
+  @@index([budgetId])
+}
+
+// ───────────────────────── AI logging ───────────────────────────
+
+model AiInvocation {
+  id           String   @id @default(cuid())
+  eventId      String?
+  event        Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  feature      String   // 'budget_estimator' | 'planning_assistant' | 'vendor_match' | 'rsvp_drafter'
+  modelId      String
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  latencyMs    Int      @default(0)
+  status       String   // 'ok' | 'error' | 'fallback'
+  error        String?
+  createdAt    DateTime @default(now())
+
+  @@index([feature, createdAt])
+}
+
+// ─────────────────────────── Audit ──────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  eventId     String?
+  action      String
+  target      String?
+  metadata    Json     @default("{}")
+  ip          String?
+  createdAt   DateTime @default(now())
+
+  @@index([eventId, createdAt])
+}
