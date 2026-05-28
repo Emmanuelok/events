@@ -66,7 +66,9 @@ Phase 0 + Phase 1 + the **AI Design Studio (Phase 3)** from `SPEC.md`:
 - ✅ **AI image generation** via Gemini Imagen 4 (env-gated; mock = Picsum in dev)
 - ✅ Video provider interface scaffolded (Veo 3 wiring deferred to next slice)
 - ✅ Provider interfaces for WhatsApp, Payments, AI, Image, Video
-- ✅ Strict TypeScript, ESLint, Vitest (31 tests passing)
+- ✅ **MoMo cash gifts** end-to-end (B6): public gift flow with amount/channel/MoMo number, Paystack adapter with HMAC-SHA512 webhook verification + transaction verify, idempotent intents (replay-safe), audit log per transition, organizer gifts dashboard with totals and per-gift thank-you queue
+- ✅ **AI thank-you composer** — Claude Sonnet 4.6 drafts a warm Ghanaian-English thank-you per gift; one click opens WhatsApp pre-filled with the message
+- ✅ Strict TypeScript, ESLint, Vitest (50 tests passing including 19 for the money path)
 - ✅ Audit log + AI invocation log tables; per-event design history
 
 What's intentionally **not** in this slice (see SPEC.md §11 for the phased plan):

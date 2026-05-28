@@ -1,7 +1,16 @@
+import Link from "next/link";
 import type { GiftsSection } from "@/lib/design/types";
 import type { Template } from "@/lib/design/templates";
 
-export function Gifts({ section, template }: { section: GiftsSection; template: Template }) {
+export function Gifts({
+  section,
+  template,
+  giftHref,
+}: {
+  section: GiftsSection;
+  template: Template;
+  giftHref: string;
+}) {
   return (
     <section style={{ background: template.palette.background, color: template.palette.ink }}>
       <div className="mx-auto max-w-3xl px-5 py-20">
@@ -33,14 +42,13 @@ export function Gifts({ section, template }: { section: GiftsSection; template: 
               Card
             </div>
           </div>
-          <button
+          <Link
+            href={giftHref}
             className="btn mt-7 px-6 py-3 text-sm font-semibold"
             style={{ background: "#ffffff", color: template.palette.ink }}
-            disabled
-            title="MoMo gifts unlock in the next slice"
           >
-            {section.ctaLabel} (coming soon)
-          </button>
+            {section.ctaLabel}
+          </Link>
         </div>
       </div>
     </section>

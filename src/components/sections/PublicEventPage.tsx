@@ -18,6 +18,7 @@ export function PublicEventPage({
 }) {
   const template = getTemplate(design.templateId);
   const rsvpHref = `/e/${slug}/rsvp`;
+  const giftHref = `/e/${slug}/gift`;
 
   return (
     <main
@@ -33,6 +34,7 @@ export function PublicEventPage({
           section={s}
           template={template}
           rsvpHref={rsvpHref}
+          giftHref={giftHref}
         />
       ))}
 
@@ -58,10 +60,12 @@ function SectionRenderer({
   section,
   template,
   rsvpHref,
+  giftHref,
 }: {
   section: Section;
   template: ReturnType<typeof getTemplate>;
   rsvpHref: string;
+  giftHref: string;
 }) {
   switch (section.type) {
     case "hero":
@@ -75,7 +79,7 @@ function SectionRenderer({
     case "faq":
       return <Faq section={section} template={template} />;
     case "gifts":
-      return <Gifts section={section} template={template} />;
+      return <Gifts section={section} template={template} giftHref={giftHref} />;
     case "rsvp":
       return <Rsvp section={section} template={template} rsvpHref={rsvpHref} />;
   }

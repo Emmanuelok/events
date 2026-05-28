@@ -15,14 +15,21 @@ export default async function EventOverview({
   params: Promise<{ eventId: string }>;
 }) {
   const { eventId } = await params;
-  const event = await db.event.findUnique({
-    where: { id: eventId },
-    include: {
-      _count: { select: { guests: true } },
-      rsvps: { select: { status: true } },
-      budget: { select: { totalMinor: true, generatedByAi: true } },
-    },
-  });
+  const [event, giftAgg] = await Promise.all([
+    db.event.findUnique({
+      where: { id: eventId },
+      include: {
+        _count: { select: { guests: true } },
+        rsvps: { select: { status: true } },
+        budget: { select: { totalMinor: true, generatedByAi: true } },
+      },
+    }),
+    db.gift.aggregate({
+      where: { eventId },
+      _sum: { amountMinor: true },
+      _count: true,
+    }),
+  ]);
   if (!event) notFound();
 
   const counts = event.rsvps.reduce(
@@ -87,6 +94,19 @@ export default async function EventOverview({
             </span>
             <span className="chip bg-red-100 text-red-800">No · {counts.no ?? 0}</span>
           </div>
+        </div>
+
+        <div className="card">
+          <p className="text-sm text-ink-600">Gifts received</p>
+          <p className="mt-1 font-display text-3xl font-semibold text-ink-900">
+            {formatGhs(giftAgg._sum.amountMinor ?? 0)}
+          </p>
+          <p className="mt-2 text-sm text-ink-500">
+            {giftAgg._count} {giftAgg._count === 1 ? "gift" : "gifts"} so far
+          </p>
+          <Link href={`/dashboard/${event.id}/gifts`} className="btn-secondary mt-4 text-sm">
+            See gifts & thank guests
+          </Link>
         </div>
 
         <div className="card">

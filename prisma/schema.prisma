@@ -125,6 +125,9 @@ model Event {
   aiInvocations AiInvocation[]
   mediaAssets   MediaAsset[]
   designBriefs  DesignBrief[]
+  giftIntents   GiftIntent[]
+  gifts         Gift[]
+  payoutAccount EventPayoutAccount?
 
   @@index([ownerId])
   @@index([status, eventDate])
@@ -271,6 +274,101 @@ model AuditLog {
   createdAt   DateTime @default(now())
 
   @@index([eventId, createdAt])
+}
+
+// ─────────────────────── Money — gifts ─────────────────────────
+
+enum GiftChannel {
+  momo_mtn
+  momo_telecel
+  momo_at
+  card
+}
+
+enum GiftIntentStatus {
+  initiated
+  authorized
+  succeeded
+  failed
+  reversed
+}
+
+model GiftIntent {
+  id              String           @id @default(cuid())
+  eventId         String
+  event           Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  guestPhone      String?          // E.164
+  guestName       String
+  amountMinor     Int              // pesewas (GHS minor units)
+  feeMinor        Int
+  totalMinor      Int              // amount + fee, what the gateway actually charges
+  currency        String           @default("GHS")
+  channel         GiftChannel
+  status          GiftIntentStatus @default(initiated)
+  gateway         String           // 'paystack' | 'mock'
+  gatewayRef      String           @unique // reference sent to gateway
+  idempotencyKey  String           @unique
+  authorizationUrl String?
+  message         String?          @db.Text
+  isPublic        Boolean          @default(true)
+  failureReason   String?
+  initiatedAt     DateTime         @default(now())
+  settledAt       DateTime?
+  reversedAt      DateTime?
+  rawGatewayPayload Json           @default("{}")
+
+  gift Gift?
+
+  @@index([eventId, status])
+  @@index([eventId, initiatedAt(sort: Desc)])
+}
+
+model Gift {
+  id              String   @id @default(cuid())
+  giftIntentId    String   @unique
+  giftIntent      GiftIntent @relation(fields: [giftIntentId], references: [id], onDelete: Cascade)
+  eventId         String
+  event           Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  amountMinor     Int
+  feeMinor        Int
+  guestName       String
+  guestPhone      String?
+  channel         GiftChannel
+  message         String?  @db.Text
+  isPublic        Boolean  @default(true)
+  thankedAt       DateTime?
+  thankYouMethod  String?  // 'whatsapp' | 'sms' | 'manual'
+  thankYouDraft   String?  @db.Text  // AI-drafted thank-you, pending send
+  settledAt       DateTime @default(now())
+
+  @@index([eventId, settledAt(sort: Desc)])
+}
+
+model EventPayoutAccount {
+  id              String   @id @default(cuid())
+  eventId         String   @unique
+  event           Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  gateway         String
+  gatewaySubaccountId String?
+  mode            String   @default("instant") // 'instant' | 'hold'
+  payoutPhone     String?  // E.164 MoMo
+  payoutProvider  String?  // 'mtn' | 'telecel' | 'at'
+  verifiedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Payout {
+  id              String   @id @default(cuid())
+  eventId         String
+  amountMinor     Int
+  status          String   // 'requested' | 'paid' | 'failed'
+  gatewayPayoutRef String?
+  requestedAt     DateTime @default(now())
+  completedAt     DateTime?
+  failureReason   String?
+
+  @@index([eventId, requestedAt(sort: Desc)])
 }
 
 // ─────────────────────── Design studio ──────────────────────────
