@@ -26,6 +26,8 @@ model User {
   ownedEvents  Event[]   @relation("EventOwner")
   memberships  EventMember[]
   aiInvocations AiInvocation[]
+  conciergeConversations ConciergeConversation[]
+  preferences  UserPreferences?
 }
 
 model Session {
@@ -130,6 +132,7 @@ model Event {
   payoutAccount EventPayoutAccount?
   outboundMessages OutboundMessage[]
   inboundMessages  InboundMessage[]
+  conciergeConversations ConciergeConversation[]
 
   @@index([ownerId])
   @@index([status, eventDate])
@@ -280,7 +283,67 @@ model AuditLog {
   @@index([eventId, createdAt])
 }
 
-// ─────────────────────── Messaging + AI inbox ──────────────────
+// ─────────────────────── Concierge (AI agent) ──────────────────
+
+enum ConciergeRole {
+  user
+  assistant
+  tool_result
+}
+
+model ConciergeConversation {
+  id            String   @id @default(cuid())
+  eventId       String
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  summary       String   @default("") @db.Text
+  summaryUpToMessageId String?
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  messages ConciergeMessage[]
+
+  @@unique([eventId, userId])
+  @@index([userId, lastMessageAt(sort: Desc)])
+}
+
+model ConciergeMessage {
+  id             String                @id @default(cuid())
+  conversationId String
+  conversation   ConciergeConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           ConciergeRole
+  content        String                @db.Text
+  toolName       String?
+  toolInput      Json?
+  toolResult     Json?
+  toolUseId      String?               // matches Claude tool_use block ids across rounds
+  modelId        String?
+  inputTokens    Int                   @default(0)
+  outputTokens   Int                   @default(0)
+  createdAt      DateTime              @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+enum ToneBand {
+  warm
+  formal
+  brief
+  playful
+}
+
+model UserPreferences {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  toneBand             ToneBand @default(warm)
+  detectedFromHistory  Boolean  @default(false)
+  toneSignalCount      Int      @default(0)   // running count of same-tone signals for hysteresis
+  pendingToneBand      ToneBand?               // tone we're considering switching to
+  updatedAt            DateTime @updatedAt
+  createdAt            DateTime @default(now())
+}
 
 enum MessageChannel {
   whatsapp

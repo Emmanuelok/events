@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { formatGhs } from "@/lib/money";
 import { regionLabel } from "@/lib/regions";
+import { computeInsights } from "@/lib/concierge/insights";
+import InsightsStrip from "@/components/Concierge/InsightsStrip";
 
 function daysUntil(d: Date) {
   const ms = d.getTime() - Date.now();
@@ -32,6 +34,8 @@ export default async function EventOverview({
   ]);
   if (!event) notFound();
 
+  const insights = await computeInsights(event.id).catch(() => []);
+
   const counts = event.rsvps.reduce(
     (acc, r) => {
       acc[r.status] = (acc[r.status] ?? 0) + 1;
@@ -44,6 +48,7 @@ export default async function EventOverview({
 
   return (
     <div className="space-y-6">
+      {insights.length > 0 && <InsightsStrip eventId={event.id} insights={insights} />}
       <div className="card flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
           <p className="text-sm text-ink-600">Wedding</p>
